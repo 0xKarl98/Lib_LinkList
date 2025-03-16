@@ -1,0 +1,6 @@
+[package]
+name = "libLinkedList"
+type = "lib"
+authors = [""]
+
+[dependencies]
