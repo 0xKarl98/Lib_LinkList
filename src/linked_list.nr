@@ -212,7 +212,33 @@ impl<T,let N:u32> LinkedList<T,N>{
     }
 
     fn pop_back_node(&mut self) -> Option<T> {
+        // if the list is empty , return None 
+        if self.tail.is_none(){
+            return None ;
+        }
+
+        // if the tail of list is existed
+        // get the tail key and previous node key 
+        let (tail_key,prev_key) = {
+            let tail_key = self.tail.unwrap();
+            let tail_node = self.nodes.get(tail_key).unwrap();
+            (tail_key,tail_node.prev)
+        };
         
-    }    
+        // after pop out the original tail , the prev_key should be the tail
+        self.tail = prev_key ;
+        
+        // if the list becomes empty after removal , return None 
+        // otherwise we update the info of new tail node 
+        let new_tail_key  = self.tail.unwrap();
+        let mut new_tail_node = self.nodes.get(new_tail_key).unwrap();
+        new_tail_node.next = None;
+        self.nodes.insert(new_tail_keym,new_tail_node);   
+    } 
+
+    // Decrease the list size by 1 
+    self.size -= 1 ;
+    // Return the removed node key
+    Some(tail_key);   
     
 }
