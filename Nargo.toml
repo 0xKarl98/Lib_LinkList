@@ -1,6 +1,6 @@
 [package]
 name = "libLinkedList"
-type = "lib"
-authors = [""]
+type = "bin"
+authors = ["Karl"]
 
 [dependencies]

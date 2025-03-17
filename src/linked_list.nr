@@ -1,12 +1,26 @@
-use dep::std;
-use crate::node::Node;
+use dep::std::{self, collections::map::HashMap};
 use std::hash::poseidon2::Poseidon2Hasher;
 
+pub struct Node<T>{
+    value : T,//value to store in the node 
+    prev: Option<Field>, //index of previous node 
+    next :Option<Field> //index of next node 
+}
+
+impl<T> Node<T> {
+    pub fn new(value: T) -> Self {
+        Node {
+            value,
+            prev: Option::none(),
+            next: Option::none()
+        }
+    }
+}
 
 /// A doubly-linked list implementation using HashMap for node storage.
 /// Supports operations at both ends in constant time.
 struct LinkedList<T,let N:u32>{
-    nodes: HashMap<Field, Node<T>, N, BuildHasherDefault<Poseidon2Hasher>>,
+    nodes:HashMap<Field, Node<T>, N, Poseidon2Hasher>, //HashMap<Field, Node<T>, N, BuildHasherDefault<Poseidon2Hasher>>,
     head: Option<Field>,
     tail: Option<Field>,
     size: u32,
@@ -16,15 +30,17 @@ struct LinkedList<T,let N:u32>{
 
 
 impl<T,let N:u32> LinkedList<T,N>{
+    
 
-    fn new() -> Self {
+    pub fn new() -> Self {
         LinkedList {
-            nodes: HashMap::new(),
-            head: None,
-            tail: None,
+            nodes: HashMap::<Field, Node<T>, N, Poseidon2Hasher>::with_hasher(Poseidon2Hasher::new()),
+            head: Option::none(),
+            tail: Option::none(),
             size: 0,
             next_key: 0,
             free_keys: Vec::new(),
+            
         }
     }
     
