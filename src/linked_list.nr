@@ -19,7 +19,7 @@ impl<T> Node<T> {
 
 /// A doubly-linked list implementation using HashMap for node storage.
 /// Supports operations at both ends in constant time.
-struct LinkedList<T, let L:u32>{
+pub struct LinkedList<T, let L:u32>{
     nodes:HashMap<Field, Node<T>, L, BuildHasherDefault<Poseidon2Hasher>>, //HashMap<Field, Node<T>, N, BuildHasherDefault<Poseidon2Hasher>>,
     head: Option<Field>,
     tail: Option<Field>,
@@ -80,8 +80,10 @@ impl<T,let L:u32> LinkedList<T,L>{
         
         let node = Node::new(value);
         let mut key =0;
-      
-        if self.free_keys.len() > 0 {
+
+        let free_keys_len = self.free_keys.len();
+        
+        if free_keys_len > 0 {
             key = self.free_keys.pop();
         } else {
             key = self.next_key;
@@ -92,6 +94,7 @@ impl<T,let L:u32> LinkedList<T,L>{
         key
     }
 
+    
     fn deallocate_node(&mut self, key: Field) -> Option<T> {     
         assert(self.nodes.contains_key(key), "Node does not exist");
         // Clear node connections
@@ -258,4 +261,48 @@ impl<T,let L:u32> LinkedList<T,L>{
 
     
     
+}
+
+
+#[test]
+pub fn test_linked_list() {
+    let mut list: LinkedList<u32, 10> = LinkedList::new();
+
+    // Test push_front
+    list.push_front(1);
+    assert(list.size == 1, "Size should be 1 after one push_front operations");
+    list.push_front(2);
+    assert(list.size == 2, "Size should be 2 after one push_front operations");
+    
+    // assert(list.head.is_some(), "Head should not be None");
+    // assert(list.tail.is_some(), "Tail should not be None");
+
+    // Test push_back
+    // list.push_back(3);
+    // assert(list.size == 3, "Size should be 3 after push_back operation");
+
+    // // Test pop_front
+    // let front = list.pop_front();
+    // assert( front.unwrap() == 2, "pop_front should return 2");
+    // assert(list.size == 2, "Size should be 2 after pop_front operation");
+
+    // // Test pop_back
+    // let back = list.pop_back();
+    // assert(back.is_some() && back.unwrap() == 3, "pop_back should return 3");
+    // assert(list.size == 1, "Size should be 1 after pop_back operation");
+
+    // // Test pop_front on single-element list
+    // let front = list.pop_front();
+    // assert(front.is_some() && front.unwrap() == 1, "pop_front should return 1");
+    // assert(list.size == 0, "Size should be 0 after popping all elements");
+
+    // // Test pop_front on empty list
+    // let front = list.pop_front();
+    // assert(front.is_none(), "pop_front on empty list should return None");
+
+    // // Test pop_back on empty list
+    // let back = list.pop_back();
+    // assert(back.is_none(), "pop_back on empty list should return None");
+
+    // println("All tests passed!");
 }
