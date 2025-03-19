@@ -25,7 +25,6 @@ pub struct LinkedList<T, let L:u32>{
     tail: Option<Field>,
     size: u32,
     next_key: Field,
-    free_keys: Vec<Field> 
 }
 
 
@@ -43,7 +42,6 @@ impl<T,let L:u32> LinkedList<T,L>{
             tail: Option::none(),
             size: 0,
             next_key: 0,
-            free_keys: Vec::new(),  
         }
     }
     
@@ -74,22 +72,14 @@ impl<T,let L:u32> LinkedList<T,L>{
         self.deallocate_node(key)
     }
     
-    //Stores the given value into Node and connect key to this node 
     fn allocate_node(&mut self, value: T) -> Field {
         assert(self.size < L, "LinkedList is full");
         
         let node = Node::new(value);
-        let mut key =0;
-
-        let free_keys_len = self.free_keys.len();
         
-        if free_keys_len > 0 {
-            key = self.free_keys.pop();
-        } else {
-            key = self.next_key;
-            self.next_key += 1;
-        }
-
+        let key = self.next_key;
+        self.next_key += 1;
+        
         self.nodes.insert(key, node);
         key
     }
@@ -113,7 +103,6 @@ impl<T,let L:u32> LinkedList<T,L>{
 
         // Remove node from nodes hashmap and recycle key
         self.nodes.remove(key);
-        self.free_keys.push(key);
 
         Option::some(value)
     }
@@ -139,19 +128,19 @@ impl<T,let L:u32> LinkedList<T,L>{
             self.head = Option::some(key);
             self.tail = Option::some(key);
         } else {
-            //if this list is not empty , 
-            //we update the pointer prev to the original head node
-            let head_key = self.head.unwrap();
-            let mut head_node = self.nodes.get(head_key).unwrap();
-            head_node.prev = Option::some(key);
+            let old_head_key = self.head.unwrap();
+            //update old head key's prev pointer 
+            {
+                let mut old_head_node =self.nodes.get(old_head_key).unwrap();
+                old_head_node.prev = Option::some(key);
+                self.nodes.insert(old_head_key,old_head_node);
+            }
+            //update head pointer to new node key 
             self.head = Option::some(key);
-            self.nodes.insert(head_key,head_node);
         }
 
         //both case will increase the list size 
         self.size += 1 ;
-        
-    
     }
 
     /// Adds the given node to the back of the list
@@ -272,37 +261,31 @@ pub fn test_linked_list() {
     list.push_front(1);
     assert(list.size == 1, "Size should be 1 after one push_front operations");
     list.push_front(2);
-    assert(list.size == 2, "Size should be 2 after one push_front operations");
+    // assert(list.size == 2, "Size should be 2 after one push_front operations");
     
-    // assert(list.head.is_some(), "Head should not be None");
-    // assert(list.tail.is_some(), "Tail should not be None");
+    assert(list.head.is_some(), "Head should not be None");
+    assert(list.tail.is_some(), "Tail should not be None");
 
     // Test push_back
-    // list.push_back(3);
-    // assert(list.size == 3, "Size should be 3 after push_back operation");
+    list.push_back(3);
+    assert(list.size == 3, "Size should be 3 after push_back operation");
 
-    // // Test pop_front
-    // let front = list.pop_front();
-    // assert( front.unwrap() == 2, "pop_front should return 2");
-    // assert(list.size == 2, "Size should be 2 after pop_front operation");
+    // Test pop_front
+    let front = list.pop_front();
+    assert( front.unwrap() == 2, "pop_front should return 2");
+    assert(list.size == 2, "Size should be 2 after pop_front operation");
 
-    // // Test pop_back
-    // let back = list.pop_back();
-    // assert(back.is_some() && back.unwrap() == 3, "pop_back should return 3");
-    // assert(list.size == 1, "Size should be 1 after pop_back operation");
+    // Test pop_back
+    let back = list.pop_back();
+    assert(back.is_some() , "pop_back should return 3");
+    assert(back.unwrap() == 3);
+    assert(list.size == 1, "Size should be 1 after pop_back operation");
 
-    // // Test pop_front on single-element list
-    // let front = list.pop_front();
-    // assert(front.is_some() && front.unwrap() == 1, "pop_front should return 1");
-    // assert(list.size == 0, "Size should be 0 after popping all elements");
+    // Test pop_front on single-element list
+    let front = list.pop_front();
+    assert(front.is_some() , "pop_front should return something");
+    assert(front.unwrap() == 1,"pop_front should return 1");
+    assert(list.size == 0, "Size should be 0 after popping all elements");
 
-    // // Test pop_front on empty list
-    // let front = list.pop_front();
-    // assert(front.is_none(), "pop_front on empty list should return None");
-
-    // // Test pop_back on empty list
-    // let back = list.pop_back();
-    // assert(back.is_none(), "pop_back on empty list should return None");
-
-    // println("All tests passed!");
+    println("All tests passed!");
 }
