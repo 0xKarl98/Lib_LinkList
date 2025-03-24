@@ -148,8 +148,6 @@ impl<T,let L:u32> LinkedList<T,L>{
     }
 
     //Adds the given node to the front of the list 
-    //Case 1: if the list is empty , this node will be both the head and the tail
-    //Case 2: if not , we update both status of new node and original head_node 
     fn push_front_node(&mut self, key: Field){
         
         //ensure the corresponding node does exist
@@ -184,8 +182,6 @@ impl<T,let L:u32> LinkedList<T,L>{
     }
 
     /// Adds the given node to the back of the list
-    /// Case 1: if the list is empty, this node will be both the head and tail
-    /// Case 2: if not, we update both the status of new node and original tail_node
     fn push_back_node(&mut self, key: Field) {
         // Ensure the corresponding node does exist
         assert(self.nodes.contains_key(key), "Node does not exist");
@@ -219,8 +215,7 @@ impl<T,let L:u32> LinkedList<T,L>{
         
     }
     
-    //Remove the node at the front of the list 
-    //Return the key of removed node 
+    //Remove the node at the front of the list and return the key of removed node 
     fn pop_front_node(&mut self) -> Option<Field> {
        //if the list is empty , return None 
        let result = if self.head.is_none(){
@@ -248,9 +243,6 @@ impl<T,let L:u32> LinkedList<T,L>{
         };
         result    
     } 
-
-    
-    
 }
 
 

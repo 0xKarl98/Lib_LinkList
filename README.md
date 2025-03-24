@@ -5,3 +5,8 @@ Features
 - Memory efficiency: Uses HashMap for node storage with key recycling
 - Type flexibility: Supports generic types through Noir's type system
 - Configurable capacity: Maximum size can be specified at compile time
+
+Todos
+- [ ]Key recycling mechanism 
+- [ ]Nodes splice , detach ,split 
+- [ ]Iterator , cursor if needed 
