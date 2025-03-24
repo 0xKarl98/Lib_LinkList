@@ -325,4 +325,79 @@ fn test_linked_list() {
         values[i] = list.pop_front().unwrap();
     }
     assert(list.size == 0, "List should be empty after popping all elements");
+
+    list.push_front(1);
+    list.push_back(2);
+    list.push_front(3);
+    list.push_back(4);
+    assert(list.size == 4, "List should have 4 elements after mixed operations");
+    
+    let front = list.pop_front().unwrap();
+    let back = list.pop_back().unwrap();
+    assert(front == 3, "Front value should be 3");
+    assert(back == 4, "Back value should be 4");
+    assert(list.size == 2, "List should have 2 elements after mixed pops");
+
+    // Final clear and verify
+    list.pop_front();
+    list.pop_front();
+    assert(list.size == 0, "List should be empty at end");
+    assert(list.head.is_none(), "Empty list should have no head");
+    assert(list.tail.is_none(), "Empty list should have no tail");
+}
+
+
+#[test]
+fn test_key_recycling() {
+    let mut list: LinkedList<u32, 10> = LinkedList::new();
+    assert(list.next_key == 0, "next_key should start at 0");
+    
+    // Add and remove some elements to generate freed keys
+    list.push_back(10);
+    list.push_back(20);
+    list.push_back(30);
+
+    assert(list.next_key == 3, "next_key should be 3 after adding 3 elements");
+    
+    list.pop_front(); // Remove 10
+    list.pop_front(); // Remove 20
+    
+    // Verify state
+    assert(list.size == 1, "List should have 1 element left");
+    assert(list.free_keys_count == 2, "Should have 2 freed keys");
+    assert(list.next_key == 3, "next_key should still be 3");
+
+    // Add new elements, which should reuse freed keys
+    list.push_back(40);
+    list.push_back(50);
+    assert(list.size == 3, "List should have 3 elements");
+    assert(list.free_keys_count == 0, "All freed keys should be used");
+    assert(list.next_key == 3, "next_key should still be 3");
+    
+    // Add two more elements - should use next_key values 3 and 4
+    list.push_back(60);
+    list.push_back(70);
+    
+    // Verify next_key has advanced again
+    assert(list.size == 5, "List should have 5 elements");
+    assert(list.next_key == 5, "next_key should be 5 after using keys 3 and 4");
+    
+    for i in 0..5 {
+        list.pop_front();
+    }
+    
+    // Verify state
+    assert(list.size == 0, "List should be empty");
+    assert(list.free_keys_count == 5, "All 5 keys should be recycled");
+    assert(list.next_key == 5, "next_key should remain at 5");
+
+    for i in 0..5 {
+        list.push_back(100 + i);
+    }
+    
+    // Verify state
+    assert(list.size == 5, "List should have 5 elements");
+    assert(list.free_keys_count == 0, "All recycled keys should be used");
+    assert(list.next_key == 5, "next_key should still be 5");
+    
 }
