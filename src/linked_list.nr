@@ -25,6 +25,8 @@ pub struct LinkedList<T, let L:u32>{
     tail: Option<Field>,
     size: u32,
     next_key: Field,
+    free_keys: [Field;L],
+    free_keys_count: u32 
 }
 
 
@@ -42,6 +44,8 @@ impl<T,let L:u32> LinkedList<T,L>{
             tail: Option::none(),
             size: 0,
             next_key: 0,
+            free_keys: [0; L],
+            free_keys_count: 0,
         }
     }
     
@@ -76,10 +80,18 @@ impl<T,let L:u32> LinkedList<T,L>{
         assert(self.size < L, "LinkedList is full");
         
         let node = Node::new(value);
+        //Set key to default value in order to prevent no expression error 
+        let mut key = 0; 
         
-        let key = self.next_key;
-        self.next_key += 1;
-        
+        if self.free_keys_count > 0 {
+            self.free_keys_count -= 1;
+            key = self.free_keys[self.free_keys_count];
+        } else {
+            // Otherwise use the next fresh key
+            key = self.next_key;
+            self.next_key += 1;
+        }
+
         self.nodes.insert(key, node);
         key
     }
@@ -134,7 +146,7 @@ impl<T,let L:u32> LinkedList<T,L>{
        
         //Unlink the node from the list 
         self.unlink_node(key);
-        
+
         // Get node's value before removing it
         let value = {
             let node = self.nodes.get(key).unwrap();
@@ -143,6 +155,10 @@ impl<T,let L:u32> LinkedList<T,L>{
 
         // Remove node from nodes hashmap 
         self.nodes.remove(key);
+
+        // Add the key to our free keys list for recycling
+        self.free_keys[self.free_keys_count] = key;
+        self.free_keys_count += 1;
 
         Option::some(value)
     }
@@ -194,7 +210,6 @@ impl<T,let L:u32> LinkedList<T,L>{
             self.nodes.insert(key, node);
         }
         
-
         // If this list is empty
         // We set this node to be both the head and tail of this list
         if self.tail.is_none() {
@@ -214,7 +229,8 @@ impl<T,let L:u32> LinkedList<T,L>{
         self.size += 1;
         
     }
-    
+
+     
     //Remove the node at the front of the list and return the key of removed node 
     fn pop_front_node(&mut self) -> Option<Field> {
        //if the list is empty , return None 
@@ -222,7 +238,6 @@ impl<T,let L:u32> LinkedList<T,L>{
             Option::none() 
        }else {
            let head_key = self.head.unwrap();
-           self.unlink_node(head_key);
            Option::some(head_key)
        };
         result
@@ -235,50 +250,79 @@ impl<T,let L:u32> LinkedList<T,L>{
         } else{
             // Get the tail key that will be returned
             let tail_key = self.tail.unwrap();
-            // Unlink the tail node
-            self.unlink_node(tail_key);
             // Return the key of the removed node
             Option::some(tail_key)
         
         };
         result    
     } 
+
+
 }
 
 
 #[test]
-pub fn test_linked_list() {
+fn test_linked_list() {
     let mut list: LinkedList<u32, 10> = LinkedList::new();
+    assert(list.size == 0, "New list should have size 0");
+    assert(list.head.is_none(), "New list should have no head");
+    assert(list.tail.is_none(), "New list should have no tail");
 
-    // Test push_front
-    list.push_front(1);
-    assert(list.size == 1, "Size should be 1 after one push_front operations");
-    list.push_front(2);
-    // assert(list.size == 2, "Size should be 2 after one push_front operations");
+    // Test push_front on empty list
+    list.push_front(10);
+    assert(list.size == 1, "List size should be 1 after push_front");
+    assert(list.head.is_some(), "List should have a head after push_front");
+    assert(list.tail.is_some(), "List should have a tail after push_front");
+    assert(list.head == list.tail, "Head and tail should be the same for single element list");
     
-    assert(list.head.is_some(), "Head should not be None");
-    assert(list.tail.is_some(), "Tail should not be None");
-
+    // Test push_front on non-empty list
+    list.push_front(20);
+    assert(list.size == 2, "List size should be 2 after second push_front");
+    assert(list.head != list.tail, "Head and tail should differ for multi-element list");
+    
     // Test push_back
-    list.push_back(3);
-    assert(list.size == 3, "Size should be 3 after push_back operation");
+    list.push_back(30);
+    assert(list.size == 3, "List size should be 3 after push_back");
 
     // Test pop_front
-    let front = list.pop_front();
-    assert( front.unwrap() == 2, "pop_front should return 2");
-    assert(list.size == 2, "Size should be 2 after pop_front operation");
+    let value = list.pop_front().unwrap();
+    assert(value == 20, "pop_front should return 20");
+    assert(list.size == 2, "List size should be 2 after pop_front");
 
-    // Test pop_back
-    let back = list.pop_back();
-    assert(back.is_some() , "pop_back should return 3");
-    assert(back.unwrap() == 3);
-    assert(list.size == 1, "Size should be 1 after pop_back operation");
+    // Pop_front again 
+    let value = list.pop_front().unwrap();
+    assert(value == 10, "pop_front should return 10");
+    assert(list.size == 1, "List size should be 1 after second pop_front");
 
-    // Test pop_front on single-element list
-    let front = list.pop_front();
-    assert(front.is_some() , "pop_front should return something");
-    assert(front.unwrap() == 1,"pop_front should return 1");
-    assert(list.size == 0, "Size should be 0 after popping all elements");
+    // Test push_back
+    list.push_back(40);
+    assert(list.size == 2, "List size should be 2 after push_back");
 
-    println("All tests passed!");
+    let value = list.pop_back().unwrap();
+    assert(value == 40, "pop_back should return 40");
+    assert(list.size == 1, "List size should be 1 after pop_back");
+
+    // Test key recycling
+    let key_count_before = list.free_keys_count;
+    list.pop_back(); // Remove last element
+    assert(list.size == 0, "List should be empty after last pop");
+    assert(list.free_keys_count > key_count_before, "Free keys count should increase after pop");
+    
+    // Test reusing freed keys
+    list.push_front(50);
+    list.push_front(60);
+    assert(list.size == 2, "List size should be 2 after pushing to a cleared list");
+
+    // Push 6 more elements to reach capacity of 8
+    for i in 0..5 {
+        list.push_back(100 + i);
+    }
+    assert(list.size == 7, "List should have 7 elements");
+
+    // Verify structure by popping everything
+    let mut values = [0; 10];
+    for i in 0..7 {
+        values[i] = list.pop_front().unwrap();
+    }
+    assert(list.size == 0, "List should be empty after popping all elements");
 }
