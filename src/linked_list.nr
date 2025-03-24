@@ -20,7 +20,7 @@ impl<T> Node<T> {
 /// A doubly-linked list implementation using HashMap for node storage.
 /// Supports operations at both ends in constant time.
 pub struct LinkedList<T, let L:u32>{
-    nodes:HashMap<Field, Node<T>, L, BuildHasherDefault<Poseidon2Hasher>>, //HashMap<Field, Node<T>, N, BuildHasherDefault<Poseidon2Hasher>>,
+    nodes:HashMap<Field, Node<T>, L, BuildHasherDefault<Poseidon2Hasher>>, 
     head: Option<Field>,
     tail: Option<Field>,
     size: u32,
@@ -84,24 +84,64 @@ impl<T,let L:u32> LinkedList<T,L>{
         key
     }
 
-    
-    fn deallocate_node(&mut self, key: Field) -> Option<T> {     
+    //This function deals with update pointers between nodes 
+    fn unlink_node(&mut self, key: Field) {
         assert(self.nodes.contains_key(key), "Node does not exist");
-        // Clear node connections
-        {
-            let mut node = self.nodes.get(key).unwrap();
-            node.next = Option::none();
-            node.prev = Option::none();
-            self.nodes.insert(key, node);
+        
+        //Get the node to unlink 
+        let node = self.nodes.get(key).unwrap();
+        let prev_key = node.prev;
+        let next_key = node.next;
+
+        //If this node has prev node , we set the prev_node's next to be 
+        //this current node's next , and then update the connection info 
+        //otherwise , this node is head node ,
+        //we should set this node's next to be the head node 
+        if prev_key.is_some() {
+            let prev = prev_key.unwrap();
+            let mut prev_node = self.nodes.get(prev).unwrap();
+            prev_node.next = next_key;
+            self.nodes.insert(prev, prev_node);
+        } else {
+            //In this case , we don't need to update the nodes hashmap,
+            //as we didn't update the internal status of any node 
+            self.head = next_key;
         }
 
+        //If this node has any next node , we set prev_key of this current node 
+        //to be the prev of next node , and update connection info of next node 
+        //Otherwise , this current node is the tail node of list 
+        //We should set the prev node to be the tail node 
+        if next_key.is_some() {
+            let next = next_key.unwrap();
+            let mut next_node = self.nodes.get(next).unwrap();
+            next_node.prev = prev_key;
+            self.nodes.insert(next, next_node);
+        } else {
+            // This node is the tail node
+            self.tail = prev_key;
+        }
+
+        //After update node connections , we need to decrement the list size by 1
+        self.size -= 1;
+
+    }
+
+    //This function is mainly for remove the key from nodes hashmap 
+    //And return the value stored in the removed node for us 
+    fn deallocate_node(&mut self, key: Field) -> Option<T> {     
+        assert(self.nodes.contains_key(key), "Node does not exist");
+       
+        //Unlink the node from the list 
+        self.unlink_node(key);
+        
         // Get node's value before removing it
         let value = {
             let node = self.nodes.get(key).unwrap();
             node.value
         };
 
-        // Remove node from nodes hashmap and recycle key
+        // Remove node from nodes hashmap 
         self.nodes.remove(key);
 
         Option::some(value)
@@ -180,42 +220,17 @@ impl<T,let L:u32> LinkedList<T,L>{
     }
     
     //Remove the node at the front of the list 
-    // Case 1: if the list is empty , will return None  
-    // Case 2: 
+    //Return the key of removed node 
     fn pop_front_node(&mut self) -> Option<Field> {
        //if the list is empty , return None 
        let result = if self.head.is_none(){
             Option::none() 
        }else {
-            let (head_key,next_key) = {
-            let head_key  =  self.head.unwrap();
-            let head_node =  self.nodes.get(head_key).unwrap();
-            (head_key,head_node.next)
-            };
-
-            //If this head_node is the only one in this list 
-            //We can continue with it , as the type of head_node is wrapped in Option 
-            //Means it will be None in this case 
-            self.head = next_key;
-            
-            //if the list becomes empty after removal 
-            //else we update new head_node information 
-            if self.head.is_none(){
-                self.tail = Option::none();
-            } else {
-                let new_head_key = self.head.unwrap();
-                let mut new_head_node = self.nodes.get(new_head_key).unwrap();
-                new_head_node.prev = Option::none();
-                self.nodes.insert(new_head_key,new_head_node);
-            }
-
-            //after update all those , we decrease the size of list by 1
-            self.size -= 1;
-            //Return the removed node key 
-            Option::some(head_key)
+           let head_key = self.head.unwrap();
+           self.unlink_node(head_key);
+           Option::some(head_key)
        };
-
-            result
+        result
     }
 
     fn pop_back_node(&mut self) -> Option<Field> {
@@ -223,28 +238,14 @@ impl<T,let L:u32> LinkedList<T,L>{
         let result = if self.tail.is_none(){
             Option::none()
         } else{
-            // if the tail of list is existed
-            // get the tail key and previous node key 
-            let (tail_key,prev_key) = {
-                let tail_key = self.tail.unwrap();
-                let tail_node = self.nodes.get(tail_key).unwrap();
-                (tail_key,tail_node.prev)
-            };
-            // after pop out the original tail , the prev_key should be the tail
-            self.tail = prev_key ;
-            // if the list becomes empty after removal , return None 
-            // otherwise we update the info of new tail node 
-            let new_tail_key  = self.tail.unwrap();
-            let mut new_tail_node = self.nodes.get(new_tail_key).unwrap();
-            new_tail_node.next = Option::none();
-            self.nodes.insert(new_tail_key,new_tail_node);  
-             // Decrease the list size by 1 
-            self.size -= 1 ;
-            // Return the removed node key
-            Option::some(tail_key) 
+            // Get the tail key that will be returned
+            let tail_key = self.tail.unwrap();
+            // Unlink the tail node
+            self.unlink_node(tail_key);
+            // Return the key of the removed node
+            Option::some(tail_key)
         
         };
-
         result    
     } 
 
