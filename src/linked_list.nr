@@ -257,6 +257,18 @@ impl<T,let L:u32> LinkedList<T,L>{
         result    
     } 
 
+    /// Completely resets the LinkedList to its initial state.
+    /// All nodes are removed and all tracking of keys is reset.
+    fn clear(&mut self){
+        self.nodes = Self::new_map();
+        self.head = Option::none();
+        self.tail = Option::none();
+        self.size = 0;
+        self.next_key = 0;  
+        self.free_keys = [0; L]; 
+        self.free_keys_count = 0; 
+    }
+
 
 }
 
@@ -400,4 +412,30 @@ fn test_key_recycling() {
     assert(list.free_keys_count == 0, "All recycled keys should be used");
     assert(list.next_key == 5, "next_key should still be 5");
     
+}
+
+
+#[test]
+fn test_clear() {
+    let mut list: LinkedList<u32, 10> = LinkedList::new();
+    list.push_front(10);
+    list.push_back(20);
+    list.push_front(30);
+    list.push_back(40);
+    
+    // Verify list state before clearing
+    assert(list.size == 4, "List should have 4 elements before clearing");
+    assert(list.next_key == 4, "next_key should be 4 after adding 4 elements");
+    assert(list.head.is_some(), "List should have a head before clearing");
+    assert(list.tail.is_some(), "List should have a tail before clearing");
+    
+    // Clear the list
+    list.clear();
+
+    // Verify list state after clearing
+    assert(list.size == 0, "List size should be 0 after clearing");
+    assert(list.next_key == 0, "next_key should be reset to 0");
+    assert(list.head.is_none(), "List should have no head after clearing");
+    assert(list.tail.is_none(), "List should have no tail after clearing");
+    assert(list.free_keys_count == 0, "free_keys_count should be reset to 0");
 }
